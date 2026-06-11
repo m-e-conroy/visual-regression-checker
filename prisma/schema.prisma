@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String?
+  passwordHash String?
+  isLocalAdmin Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  settings     Settings?
+  scans        Scan[]
+}
+
+model Settings {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id])
+  emailNotifications Boolean  @default(false)
+  teamsNotifications Boolean  @default(false)
+  teamsWebhookUrl    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AppSettings {
+  id              String   @id @default("global")
+  smtpHost        String?
+  smtpPort        Int?
+  smtpUser        String?
+  smtpPass        String?
+  jwtSecret       String?
+  updatedAt       DateTime @updatedAt
+}
+
+model Site {
+  id         String   @id @default(uuid())
+  name       String
+  sitemapUrl String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  pages      Page[]
+}
+
+model Page {
+  id        String   @id @default(uuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  url       String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  scans     Scan[]
+
+  @@unique([siteId, url])
+}
+
+model Scan {
+  id              String     @id @default(uuid())
+  pageId          String
+  page            Page       @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  status          ScanStatus @default(PENDING)
+  screenshotPath  String?
+  diffPath        String?
+  diffPercentage  Float?
+  isBaseline      Boolean    @default(false)
+  approvedReason  String?
+  userId          String?
+  user            User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt       DateTime   @default(now())
+}
+
+enum ScanStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  TIMEOUT
+  APPROVED
+}
