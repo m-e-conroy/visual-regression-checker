@@ -20,13 +20,21 @@ export async function compareScreenshots(
       const img1 = PNG.sync.read(fs.readFileSync(baselinePath));
       const img2 = PNG.sync.read(fs.readFileSync(scanPath));
 
-      const { width, height } = img1;
+      const width = Math.max(img1.width, img2.width);
+      const height = Math.max(img1.height, img2.height);
+
+      const img1Adjusted = new PNG({ width, height });
+      const img2Adjusted = new PNG({ width, height });
+      
+      PNG.bitblt(img1, img1Adjusted, 0, 0, img1.width, img1.height, 0, 0);
+      PNG.bitblt(img2, img2Adjusted, 0, 0, img2.width, img2.height, 0, 0);
+
       const diff = new PNG({ width, height });
 
       // Compare the two images
       const numDiffPixels = pixelmatch(
-        img1.data,
-        img2.data,
+        img1Adjusted.data,
+        img2Adjusted.data,
         diff.data,
         width,
         height,

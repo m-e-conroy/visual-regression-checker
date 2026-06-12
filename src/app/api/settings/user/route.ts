@@ -17,14 +17,20 @@ export async function GET() {
       where: { userId: payload.userId as string }
     });
 
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId as string },
+      select: { passwordHash: true }
+    });
+    const isLocalUser = !!user?.passwordHash;
+
     if (!settings) {
       const newSettings = await prisma.settings.create({
         data: { userId: payload.userId as string }
       });
-      return NextResponse.json(newSettings);
+      return NextResponse.json({ ...newSettings, isLocalUser });
     }
     
-    return NextResponse.json(settings);
+    return NextResponse.json({ ...settings, isLocalUser });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch user settings' }, { status: 500 });
   }

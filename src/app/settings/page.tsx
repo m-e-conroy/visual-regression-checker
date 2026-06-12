@@ -17,6 +17,15 @@ export default function SettingsPage() {
     teamsWebhookUrl: ''
   });
 
+  const [isLocalUser, setIsLocalUser] = useState(false);
+  const [passwordState, setPasswordState] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -47,6 +56,7 @@ export default function SettingsPage() {
             teamsNotifications: userData.teamsNotifications || false,
             teamsWebhookUrl: userData.teamsWebhookUrl || ''
           });
+          setIsLocalUser(!!userData.isLocalUser);
         }
       } catch (err) {
         console.error('Failed to load settings', err);
@@ -65,7 +75,7 @@ export default function SettingsPage() {
     try {
       const appPayload = { ...appSettings };
       // Don't send empty password if they didn't change it
-      if (!appPayload.smtpPass) delete (appPayload as any).smtpPass;
+      if (!appPayload.smtpPass) delete (appPayload as { smtpPass?: string }).smtpPass;
 
       await Promise.all([
         fetch('/api/settings/app', {
@@ -81,10 +91,45 @@ export default function SettingsPage() {
       ]);
       
       setMessage('Settings saved successfully!');
-    } catch (err) {
+    } catch {
       setMessage('Failed to save settings.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePasswordSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordSaving(true);
+    setPasswordMessage('');
+
+    if (passwordState.newPassword !== passwordState.confirmPassword) {
+      setPasswordMessage('error: New passwords do not match.');
+      setPasswordSaving(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordState.currentPassword,
+          newPassword: passwordState.newPassword
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordMessage('success: Password changed successfully.');
+        setPasswordState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setPasswordMessage(`error: ${data.error || 'Failed to change password.'}`);
+      }
+    } catch {
+      setPasswordMessage('error: An unexpected error occurred.');
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -157,6 +202,41 @@ export default function SettingsPage() {
         </div>
 
       </form>
+
+      {isLocalUser && (
+        <form onSubmit={handlePasswordSave} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginTop: '2rem' }}>
+          <div className="card">
+            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>Change Password</h3>
+            
+            {passwordMessage && (
+              <div style={{ padding: '1rem', marginBottom: '1rem', backgroundColor: passwordMessage.startsWith('success') ? '#dcfce7' : '#fee2e2', color: passwordMessage.startsWith('success') ? '#166534' : '#b91c1c', borderRadius: 'var(--radius-md)' }}>
+                {passwordMessage.replace('success: ', '').replace('error: ', '')}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label>Current Password</label>
+                <input type="password" required value={passwordState.currentPassword} onChange={e => setPasswordState({...passwordState, currentPassword: e.target.value})} style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label>New Password</label>
+                <input type="password" required minLength={8} value={passwordState.newPassword} onChange={e => setPasswordState({...passwordState, newPassword: e.target.value})} style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label>Confirm New Password</label>
+                <input type="password" required minLength={8} value={passwordState.confirmPassword} onChange={e => setPasswordState({...passwordState, confirmPassword: e.target.value})} style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }} />
+              </div>
+            </div>
+            
+            <div style={{ marginTop: '1.5rem' }}>
+              <button type="submit" className="btn-primary" disabled={passwordSaving}>
+                {passwordSaving ? 'Changing Password...' : 'Change Password'}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
