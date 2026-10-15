@@ -1,9 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+
+interface SiteItem {
+  id: string;
+  name: string;
+  sitemapUrl: string;
+  _count?: {
+    pages: number;
+  };
+}
 
 export default function SitesPage() {
-  const [sites, setSites] = useState<any[]>([]);
+  const [sites, setSites] = useState<SiteItem[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Modal / Form state
@@ -13,7 +23,7 @@ export default function SitesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchSites = async () => {
+  const fetchSites = useCallback(async () => {
     try {
       const res = await fetch('/api/sites');
       if (res.ok) {
@@ -25,10 +35,31 @@ export default function SitesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchSites();
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch('/api/sites');
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore) {
+            setSites(data);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleAddSite = async (e: React.FormEvent) => {
@@ -56,8 +87,8 @@ export default function SitesPage() {
       await fetchSites();
 
       alert(`Successfully added site tracking ${data.pageCount} pages!`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to add site.');
     } finally {
       setSubmitting(false);
     }
@@ -77,6 +108,7 @@ export default function SitesPage() {
         alert(`Error: ${data.error}`);
       }
     } catch (error) {
+      console.error('Failed to trigger scan:', error);
       alert('Failed to trigger scan.');
     }
   };
@@ -128,7 +160,7 @@ export default function SitesPage() {
                 <a href={site.sitemapUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.875rem' }}>{site.sitemapUrl}</a>
               </div>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <a href={`/sites/${site.id}`} className="btn-primary" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>View Pages</a>
+                <Link href={`/sites/${site.id}`} className="btn-primary" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>View Pages</Link>
                 <button className="btn-primary" onClick={() => handleTriggerScan(site.id)}>Run Scan Now</button>
               </div>
             </div>

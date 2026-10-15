@@ -29,7 +29,11 @@ export default function ScanActions({ scanId, pageId, status, diffPercentage }: 
               const data = await statusRes.json();
               if (data.scan && data.scan.status !== 'PENDING') {
                 clearInterval(intervalId);
-                window.location.reload();
+                if (data.scan.id !== scanId) {
+                  window.location.href = `/scans/${data.scan.id}`;
+                } else {
+                  window.location.reload();
+                }
               }
             }
           } catch (e) {

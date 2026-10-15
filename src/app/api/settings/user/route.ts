@@ -32,6 +32,7 @@ export async function GET() {
     
     return NextResponse.json({ ...settings, isLocalUser });
   } catch (error) {
+    console.error('Failed to fetch user settings:', error);
     return NextResponse.json({ error: 'Failed to fetch user settings' }, { status: 500 });
   }
 }
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(updated);
   } catch (error) {
+    console.error('Failed to update user settings:', error);
     return NextResponse.json({ error: 'Failed to update user settings' }, { status: 500 });
   }
 }

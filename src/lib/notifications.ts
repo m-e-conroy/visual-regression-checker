@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import nodemailer from 'nodemailer';
+import nodemailer, { SendMailOptions } from 'nodemailer';
 
 const prisma = new PrismaClient();
 
@@ -42,7 +42,7 @@ export async function dispatchNotifications({ userId, pageUrl, diffPercentage, d
         },
       });
 
-      const mailOptions: any = {
+      const mailOptions: SendMailOptions = {
         from: `"Visual Regression Checker" <${appSettings.smtpUser}>`,
         to: user.email,
         subject: `Visual Regression Detected: ${pageUrl}`,

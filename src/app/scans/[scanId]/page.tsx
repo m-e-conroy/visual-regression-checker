@@ -25,6 +25,13 @@ export default async function ScanViewerPage({ params }: { params: Promise<{ sca
     orderBy: { createdAt: 'desc' }
   });
 
+  // Check if a more recent scan exists for this page
+  const latestScan = await prisma.scan.findFirst({
+    where: { pageId: scan.pageId, isBaseline: false },
+    orderBy: { createdAt: 'desc' }
+  });
+  const isOutdated = latestScan && latestScan.id !== scan.id;
+
   // Calculate Next and Previous Pages for the same site
   const sitePages = await prisma.page.findMany({
     where: { siteId: scan.page.siteId },
@@ -53,6 +60,18 @@ export default async function ScanViewerPage({ params }: { params: Promise<{ sca
         <Link href={`/sites/${scan.page.siteId}`} style={{ fontSize: '0.875rem', display: 'inline-block', marginBottom: '1rem' }}>
           &larr; Back to {scan.page.site.name}
         </Link>
+
+        {isOutdated && (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.875rem', color: '#1e40af' }}>
+              ℹ️ You are viewing a past scan from {new Date(scan.createdAt).toLocaleString()}. A newer scan is available.
+            </span>
+            <Link href={`/scans/${latestScan.id}`} className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.4rem 0.8rem' }}>
+              View Latest Scan &rarr;
+            </Link>
+          </div>
+        )}
+
         <h2 style={{ color: 'var(--color-primary-light)', marginBottom: '0.5rem' }}>Visual Regression Viewer</h2>
         <p style={{ color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
           <a href={scan.page.url} target="_blank" rel="noopener noreferrer">{scan.page.url}</a>
@@ -96,6 +115,7 @@ export default async function ScanViewerPage({ params }: { params: Promise<{ sca
           <h3 style={{ marginBottom: '1rem', textAlign: 'center' }}>Baseline</h3>
           <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', backgroundColor: '#f9fafb', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {baseline?.screenshotPath ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img 
                 src={`/api/image?path=${encodePath(baseline.screenshotPath)}`} 
                 alt="Baseline" 
@@ -117,6 +137,7 @@ export default async function ScanViewerPage({ params }: { params: Promise<{ sca
           <h3 style={{ marginBottom: '1rem', textAlign: 'center' }}>Current Scan</h3>
           <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', backgroundColor: '#f9fafb', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {scan.screenshotPath ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img 
                 src={`/api/image?path=${encodePath(scan.screenshotPath)}`} 
                 alt="Current Scan" 
@@ -136,6 +157,7 @@ export default async function ScanViewerPage({ params }: { params: Promise<{ sca
           <h3 style={{ marginBottom: '1rem', textAlign: 'center', color: '#dc2626' }}>Difference Overlay</h3>
           <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', backgroundColor: '#f9fafb', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {scan.diffPath ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img 
                 src={`/api/image?path=${encodePath(scan.diffPath)}`} 
                 alt="Diff Overlay" 

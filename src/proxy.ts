@@ -26,7 +26,7 @@ export async function proxy(request: NextRequest) {
       // Do strict validation against the DB's AppSettings.
       const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_for_development_only');
       await jwtVerify(token, secret);
-    } catch (error) {
+    } catch {
       // Token is invalid or expired
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('vrc_session');

@@ -1,10 +1,15 @@
-import { PrismaClient, ScanStatus } from '@prisma/client';
+import { PrismaClient, ScanStatus, Page as PrismaPage } from '@prisma/client';
 import { captureScreenshot } from './scanner';
 import { compareScreenshots } from './differ';
 import { dispatchNotifications } from './notifications';
 
 const prisma = new PrismaClient();
 const DIFF_THRESHOLD = 0.5; // Trigger notifications if diff > 0.5%
+
+interface QueueItem {
+  page: PrismaPage;
+  attempts: number;
+}
 
 export async function runScanForSite(siteId: string, userId?: string) {
   console.log(`Starting scan for site: ${siteId}`);
@@ -49,7 +54,7 @@ export async function runScanForPage(pageId: string, userId?: string) {
   }
 }
 
-async function processQueue(queue: any[], userId?: string) {
+async function processQueue(queue: QueueItem[], userId?: string) {
   while (queue.length > 0) {
     const item = queue.shift();
     if (!item) continue;
@@ -121,11 +126,12 @@ async function processQueue(queue: any[], userId?: string) {
           });
         }
       }
-    } catch (error: any) {
-      console.error(`Error scanning ${page.url}:`, error.message || error);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error(`Error scanning ${page.url}:`, err.message);
       
       // If it's a timeout and we haven't retried yet, push it back to the end of the queue
-      if (error.name === 'TimeoutError' || error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+      if (err.name === 'TimeoutError' || err.message.toLowerCase().includes('timeout')) {
         if (attempts === 0) {
           console.log(`Timeout detected for ${page.url}. Queuing for retry...`);
           queue.push({ page, attempts: attempts + 1 });

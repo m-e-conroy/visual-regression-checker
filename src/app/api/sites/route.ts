@@ -19,6 +19,7 @@ export async function GET() {
     
     return NextResponse.json(sites);
   } catch (error) {
+    console.error('Failed to fetch sites:', error);
     return NextResponse.json({ error: 'Failed to fetch sites' }, { status: 500 });
   }
 }
@@ -71,8 +72,9 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ site, pageCount: urls.length });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to add site:', error);
-    return NextResponse.json({ error: error.message || 'Failed to add site' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to add site';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

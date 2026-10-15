@@ -1,4 +1,4 @@
-import { chromium, Browser, Page } from 'playwright';
+import { chromium, Browser } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 
@@ -40,6 +40,26 @@ export async function captureScreenshot(url: string, pageId: string, isBaseline:
     const type = isBaseline ? 'baseline' : 'scan';
     const filename = `${pageId}_${type}_${timestamp}.png`;
     const filepath = path.join(baseDir, filename);
+
+    // Reset height constraints and scroll through page to trigger lazy loaded content
+    await page.evaluate(async () => {
+      document.documentElement.style.height = 'auto';
+      document.body.style.height = 'auto';
+
+      await new Promise<void>((resolve) => {
+        let total = 0;
+        const dist = 400;
+        const timer = setInterval(() => {
+          window.scrollBy(0, dist);
+          total += dist;
+          if (total >= document.body.scrollHeight) {
+            clearInterval(timer);
+            window.scrollTo(0, 0);
+            resolve();
+          }
+        }, 50);
+      });
+    });
 
     // Capture full page screenshot
     await page.screenshot({ path: filepath, fullPage: true });

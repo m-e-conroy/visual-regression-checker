@@ -21,6 +21,7 @@ export async function GET() {
     
     return NextResponse.json(appSettings);
   } catch (error) {
+    console.error('Failed to fetch app settings:', error);
     return NextResponse.json({ error: 'Failed to fetch app settings' }, { status: 500 });
   }
 }
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(updated);
   } catch (error) {
+    console.error('Failed to update app settings:', error);
     return NextResponse.json({ error: 'Failed to update app settings' }, { status: 500 });
   }
 }

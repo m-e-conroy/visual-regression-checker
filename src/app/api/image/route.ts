@@ -31,6 +31,7 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
+    console.error('Failed to load image:', error);
     return NextResponse.json({ error: 'Failed to load image' }, { status: 500 });
   }
 }
